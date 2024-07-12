@@ -1,0 +1,823 @@
+<html><head><base href="https://cannacraft.io"><title>CannaCraft Deluxe - Cultivez, vendez et investissez dans le cannabis virtuel</title><style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8f0;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #2c7744;
+            text-align: center;
+        }
+        #game-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #garden, #stock-market {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .plot, .stock {
+            width: 100px;
+            height: 140px;
+            background-color: #e8f5e9;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 5px;
+        }
+        .plot:hover, .stock:hover {
+            background-color: #c8e6c9;
+        }
+        .plot img, .stock img {
+            max-width: 80%;
+            max-height: 60%;
+        }
+        .plot .timer, .stock .price {
+            font-size: 12px;
+            color: #333;
+            background-color: rgba(255,255,255,0.8);
+            padding: 2px 5px;
+            border-radius: 3px;
+            width: 100%;
+            text-align: center;
+        }
+        .stock .trend {
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        .stock .change {
+            font-size: 12px;
+            color: #666;
+        }
+        .stock .recommendation {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .recommendation.buy {
+            color: #4CAF50;
+        }
+        .recommendation.sell {
+            color: #F44336;
+        }
+        .recommendation.hold {
+            color: #FFC107;
+        }
+        #controls, #buyers, #stock-controls, #shop-items {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #inventory, #player-stats {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+        }
+        #seed-selection {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .seed-type {
+            padding: 5px 10px;
+            border: 1px solid #4CAF50;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .seed-type.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #level-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        #xp-progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.5s ease-in-out;
+        }
+        .buyer {
+            background-color: #f1f8e9;
+            border: 1px solid #7cb342;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            width: calc(33% - 10px);
+        }
+        .stock.owned {
+            border-color: #2196F3;
+        }
+        #market-section {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        #buyers-section, #inventory-section {
+            width: 48%;
+        }
+        .shop-item {
+            background-color: #f1f8e9;
+            border: 1px solid #7cb342;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            width: calc(33% - 10px);
+        }
+        #active-items {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 5px;
+        }
+        .active-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .active-item-timer {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        #shop-timer {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-top: 10px;
+        }
+        #total-harvested {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-top: 10px;
+            text-align: center;
+        }
+        #save-load {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+    </style></head><body>
+    <h1>CannaCraft Deluxe</h1>
+    <div id="game-container">
+        <div id="player-stats">
+            <h3>Statistiques du joueur:</h3>
+            <p>Niveau: <span id="level">1</span></p>
+            <p>XP: <span id="xp">0</span> / <span id="xp-needed">100</span></p>
+            <div id="level-bar"><div id="xp-progress"></div></div>
+            <p>Argent: $<span id="money">1000</span></p>
+        </div>
+        <div id="seed-selection">
+            <div class="seed-type" onclick="selectSeed('sativa')">Sativa ($50)</div>
+            <div class="seed-type" onclick="selectSeed('indica')">Indica ($40)</div>
+            <div class="seed-type" onclick="selectSeed('ruderalis')">Ruderalis ($30)</div>
+            <div class="seed-type" onclick="selectSeed('hybrid')">Hybrid ($60)</div>
+            <div class="seed-type" onclick="selectSeed('cbd')">CBD ($45)</div>
+        </div>
+        <div id="garden">
+            <div class="plot" onclick="plant(0)"></div>
+            <div class="plot" onclick="plant(1)"></div>
+            <div class="plot" onclick="plant(2)"></div>
+            <div class="plot" onclick="plant(3)"></div>
+            <div class="plot" onclick="plant(4)"></div>
+            <div class="plot" onclick="plant(5)"></div>
+            <div class="plot" onclick="plant(6)"></div>
+            <div class="plot" onclick="plant(7)"></div>
+            <div class="plot" onclick="plant(8)"></div>
+            <div class="plot" onclick="plant(9)"></div>
+        </div>
+        <div id="controls">
+            <button onclick="waterAll()">Arroser toutes les plantes</button>
+            <button onclick="harvest()">Récolter</button>
+            <button onclick="buyWater()">Acheter de l'eau ($10 pour 50L)</button>
+        </div>
+        <div id="market-section">
+            <div id="inventory-section">
+                <h2>Inventaire</h2>
+                <p>Eau: <span id="water">100</span> litres</p>
+                <p>Cannabis récolté:</p>
+                <ul id="harvested-list">
+                    <li>Sativa: <span id="harvested-sativa">0</span>g</li>
+                    <li>Indica: <span id="harvested-indica">0</span>g</li>
+                    <li>Ruderalis: <span id="harvested-ruderalis">0</span>g</li>
+                    <li>Hybrid: <span id="harvested-hybrid">0</span>g</li>
+                    <li>CBD: <span id="harvested-cbd">0</span>g</li>
+                </ul>
+                <div id="total-harvested">Total récolté: <span id="total-harvested-amount">0</span>g</div>
+            </div>
+            <div id="buyers-section">
+                <h2>Marché des acheteurs</h2>
+                <div id="buyers"></div>
+            </div>
+        </div>
+        <h2>Shop d'évolution</h2>
+        <div id="shop-timer">Temps restant avant nouveau stock: <span id="shop-countdown">15:00</span></div>
+        <div id="shop-items">
+            <!-- Les éléments du shop seront ajoutés ici dynamiquement -->
+        </div>
+        <div id="active-items">
+            <h3>Objets actifs:</h3>
+            <!-- Les objets actifs seront ajoutés ici dynamiquement -->
+        </div>
+        <h2>Marché boursier simplifié</h2>
+        <div id="stock-market"></div>
+        <div id="stock-controls">
+            <button onclick="buyStock()">Acheter</button>
+            <button onclick="sellStock()">Vendre</button>
+        </div>
+        <div id="status"></div>
+        <h3>Actions possédées:</h3>
+        <ul id="stock-list"></ul>
+        <div id="save-load">
+            <button onclick="saveGame()">Sauvegarder la partie</button>
+            <button onclick="loadGame()">Charger la partie</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let plots = Array(10).fill(null);
+        let growth = Array(10).fill(0);
+        let water = 100;
+        let harvested = {
+            sativa: 0,
+            indica: 0,
+            ruderalis: 0,
+            hybrid: 0,
+            cbd: 0
+        };
+        let totalHarvested = 0;
+        let selectedSeed = 'sativa';
+        let timers = Array(10).fill(null);
+        let growthIntervals = Array(10).fill(null);
+        let level = 1;
+        let xp = 0;
+        let xpNeeded = 100;
+        let money = 1000;
+        let selectedStock = null;
+        let ownedStocks = {};
+        let wateringCount = Array(10).fill(0);
+        let shopRefreshTimer = 15 * 60; // 15 minutes in seconds
+
+        const plantTypes = {
+            'sativa': { growthTime: 120, yield: [25, 35], price: 50, sellPrice: 10 },
+            'indica': { growthTime: 90, yield: [20, 30], price: 40, sellPrice: 8 },
+            'ruderalis': { growthTime: 60, yield: [15, 25], price: 30, sellPrice: 6 },
+            'hybrid': { growthTime: 100, yield: [22, 32], price: 60, sellPrice: 12 },
+            'cbd': { growthTime: 80, yield: [18, 28], price: 45, sellPrice: 9 }
+        };
+
+        const buyerTemplates = [
+            { name: "Bob le Hippie", wants: "sativa", amount: 50, price: 600, xp: 30 },
+            { name: "Alice la Yogi", wants: "indica", amount: 40, price: 400, xp: 25 },
+            { name: "Charlie le Jardinier", wants: "ruderalis", amount: 30, price: 250, xp: 20 },
+            { name: "David le DJ", wants: "hybrid", amount: 60, price: 800, xp: 35 },
+            { name: "Eve la Thérapeute", wants: "cbd", amount: 45, price: 500, xp: 28 }
+        ];
+
+        let buyers = [];
+
+        function generateBuyer() {
+            const template = buyerTemplates[Math.floor(Math.random() * buyerTemplates.length)];
+            return {...template, wants: Object.keys(plantTypes)[Math.floor(Math.random() * Object.keys(plantTypes).length)]};
+        }
+
+        function initializeBuyers() {
+            while (buyers.length < 3) {
+                buyers.push(generateBuyer());
+            }
+        }
+
+        initializeBuyers();
+
+        const stocks = {
+            'SATIVA': { price: 50, volatility: 0.1, lastPrice: 50, history: [50], volume: 0 },
+            'INDICA': { price: 30, volatility: 0.05, lastPrice: 30, history: [30], volume: 0 },
+            'RUDERALIS': { price: 40, volatility: 0.08, lastPrice: 40, history: [40], volume: 0 },
+            'HYBRID': { price: 60, volatility: 0.12, lastPrice: 60, history: [60], volume: 0 },
+            'CBD': { price: 45, volatility: 0.07, lastPrice: 45, history: [45], volume: 0 }
+        };
+
+        const allShopItems = [
+            { name: "Engrais Premium", price: 500, effect: "Augmente le rendement de 10%", onPurchase: () => {
+                for (let type in plantTypes) {
+                    plantTypes[type].yield[0] = Math.floor(plantTypes[type].yield[0] * 1.1);
+                    plantTypes[type].yield[1] = Math.floor(plantTypes[type].yield[1] * 1.1);
+                }
+            }},
+            { name: "Système d'arrosage automatique", price: 1000, effect: "Arrose automatiquement toutes les plantes toutes les 30 secondes", onPurchase: () => {
+                setInterval(waterAll, 30000);
+            }},
+            { name: "Serre high-tech", price: 2000, effect: "Réduit le temps de croissance de 20%", onPurchase: () => {
+                for (let type in plantTypes) {
+                    plantTypes[type].growthTime = Math.floor(plantTypes[type].growthTime * 0.8);
+                }
+            }},
+            { name: "Lampes LED", price: 1500, effect: "Augmente la croissance de 15%", onPurchase: () => {
+                for (let type in plantTypes) {
+                    plantTypes[type].growthTime = Math.floor(plantTypes[type].growthTime * 0.85);
+                }
+            }},
+            { name: "Système hydroponique", price: 3000, effect: "Augmente le rendement de 20%", onPurchase: () => {
+                for (let type in plantTypes) {
+                    plantTypes[type].yield[0] = Math.floor(plantTypes[type].yield[0] * 1.2);
+                    plantTypes[type].yield[1] = Math.floor(plantTypes[type].yield[1] * 1.2);
+                }
+            }}
+        ];
+
+        let shopItems = [];
+        let activeItems = [];
+
+        function refillShop() {
+            shopItems = [];
+            while (shopItems.length < 3) {
+                if (allShopItems.length > 0) {
+                    const index = Math.floor(Math.random() * allShopItems.length);
+                    shopItems.push(allShopItems[index]);
+                } else {
+                    break;
+                }
+            }
+            shopRefreshTimer = 15 * 60; // Reset timer to 15 minutes
+            updateShop();
+        }
+
+        refillShop();
+
+        function updateDisplay() {
+            document.getElementById('water').textContent = water;
+            document.getElementById('level').textContent = level;
+            document.getElementById('xp').textContent = xp;
+            document.getElementById('xp-needed').textContent = xpNeeded;
+            document.getElementById('money').textContent = money;
+            document.getElementById('xp-progress').style.width = (xp / xpNeeded * 100) + '%';
+
+            for (let type in harvested) {
+                document.getElementById(`harvested-${type}`).textContent = harvested[type];
+            }
+
+            updateTotalHarvested();
+
+            for (let i = 0; i < plots.length; i++) {
+                let plot = document.getElementsByClassName('plot')[i];
+                plot.innerHTML = '';
+                if (plots[i]) {
+                    let img = document.createElement('img');
+                    img.src = growth[i] < 33 ? `seedling_${plots[i]}.png` :
+                              growth[i] < 66 ? `growing_${plots[i]}.png` : 
+                              `mature_${plots[i]}.png`;
+                    img.alt = `Plante de cannabis ${plots[i]}`;
+                    plot.appendChild(img);
+                    
+                    if (timers[i] !== null) {
+                        let timerDiv = document.createElement('div');
+                        timerDiv.className = 'timer';
+                        timerDiv.textContent = Math.ceil(timers[i]) + 's';
+                        plot.appendChild(timerDiv);
+                    }
+                }
+            }
+
+            updateBuyers();
+            updateStocks();
+            updateShop();
+            updateActiveItems();
+            updateShopTimer();
+        }
+
+        function updateTotalHarvested() {
+            totalHarvested = Object.values(harvested).reduce((a, b) => a + b, 0);
+            document.getElementById('total-harvested-amount').textContent = totalHarvested;
+        }
+
+        function updateBuyers() {
+            const buyersContainer = document.getElementById('buyers');
+            buyersContainer.innerHTML = '';
+            buyers.forEach((buyer, index) => {
+                const buyerDiv = document.createElement('div');
+                buyerDiv.className = 'buyer';
+                buyerDiv.innerHTML = `
+                    <h3>${buyer.name}</h3>
+                    <p>Veut: ${buyer.amount}g de ${buyer.wants}</p>
+                    <p>Offre: $${buyer.price}</p>
+                    <button onclick="sellTo(${index})">Vendre</button>
+                `;
+                buyersContainer.appendChild(buyerDiv);
+            });
+        }
+
+        function updateStocks() {
+            const stockMarket = document.getElementById('stock-market');
+            stockMarket.innerHTML = '';
+            for (let stockName in stocks) {
+                let stockDiv = document.createElement('div');
+                stockDiv.className = `stock${ownedStocks[stockName] ? ' owned' : ''}${selectedStock === stockName ? ' selected' : ''}`;
+                stockDiv.onclick = () => toggleStock(stockName);
+                
+                let change = stocks[stockName].price - stocks[stockName].lastPrice;
+                let changePercent = (change / stocks[stockName].lastPrice * 100).toFixed(2);
+                let trend = change > 0 ? '▲' : change < 0 ? '▼' : '►';
+                let changeClass = change > 0 ? 'positive' : change < 0 ? 'negative' : 'neutral';
+                
+                let recommendation = getRecommendation(stockName);
+                
+                stockDiv.innerHTML = `
+                    <strong>${stockName}</strong>
+                    <div class="price">$${stocks[stockName].price.toFixed(2)}</div>
+                    <div class="trend ${changeClass}">${trend} ${Math.abs(changePercent)}%</div>
+                    <div class="change">Vol: ${stocks[stockName].volume}</div>
+                    <div class="recommendation ${recommendation.toLowerCase()}">${recommendation}</div>
+                `;
+                stockMarket.appendChild(stockDiv);
+            }
+
+            let stockList = document.getElementById('stock-list');
+            stockList.innerHTML = '';
+            for (let stockName in ownedStocks) {
+                if (ownedStocks[stockName] > 0) {
+                    let li = document.createElement('li');
+                    li.textContent = `${stockName}: ${ownedStocks[stockName]} actions`;
+                    stockList.appendChild(li);
+                }
+            }
+        }
+
+        function getRecommendation(stockName) {
+            const stock = stocks[stockName];
+            const priceHistory = stock.history;
+            const currentPrice = stock.price;
+            const averagePrice = priceHistory.reduce((a, b) => a + b, 0) / priceHistory.length;
+            
+            if (currentPrice < averagePrice * 0.9) {
+                return "ACHETER";
+            } else if (currentPrice > averagePrice * 1.1) {
+                return "VENDRE";
+            } else {
+                return "CONSERVER";
+            }
+        }
+
+        function updateShop() {
+            const shopContainer = document.getElementById('shop-items');
+            shopContainer.innerHTML = '';
+            shopItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'shop-item';
+                itemDiv.innerHTML = `
+                    <h3>${item.name}</h3>
+                    <p>Prix: $${item.price}</p>
+                    <p>Effet: ${item.effect}</p>
+                    <button onclick="buyShopItem(${index})">Acheter</button>
+                `;
+                shopContainer.appendChild(itemDiv);
+            });
+        }
+
+        function updateActiveItems() {
+            const activeItemsContainer = document.getElementById('active-items');
+            activeItemsContainer.innerHTML = '<h3>Objets actifs:</h3>';
+            activeItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'active-item';
+                const remainingTime = Math.max(0, Math.floor((item.expirationTime - Date.now()) / 1000));
+                itemDiv.innerHTML = `
+                    <span>${item.name}</span>
+                    <span class="active-item-timer">${Math.floor(remainingTime / 60)}:${(remainingTime % 60).toString().padStart(2, '0')}</span>
+                `;
+                activeItemsContainer.appendChild(itemDiv);
+            });
+        }
+
+        function updateShopTimer() {
+            const minutes = Math.floor(shopRefreshTimer / 60);
+            const seconds = shopRefreshTimer % 60;
+            document.getElementById('shop-countdown').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function toggleStock(stockName) {
+            selectedStock = selectedStock === stockName ? null : stockName;
+            updateStocks();
+        }
+
+        function buyStock() {
+            if (selectedStock && money >= stocks[selectedStock].price) {
+                money -= stocks[selectedStock].price;
+                ownedStocks[selectedStock] = (ownedStocks[selectedStock] || 0) + 1;
+                stocks[selectedStock].volume += 1;
+                gainXP(5);
+                updateDisplay();
+                document.getElementById('status').textContent = `Achat d'une action ${selectedStock} pour $${stocks[selectedStock].price.toFixed(2)}`;
+            } else {
+                document.getElementById('status').textContent = 'Sélectionnez une action et assurez-vous d\'avoir assez d\'argent.';
+            }
+        }
+
+        function sellStock() {
+            if (selectedStock && ownedStocks[selectedStock] > 0) {
+                let sellPrice = stocks[selectedStock].price;
+                money += sellPrice;
+                ownedStocks[selectedStock]--;
+                stocks[selectedStock].volume -= 1;
+                gainXP(5);
+                updateDisplay();
+                document.getElementById('status').textContent = `Vente d'une action ${selectedStock} pour $${sellPrice.toFixed(2)}`;
+            } else {
+                document.getElementById('status').textContent = 'Sélectionnez une action que vous possédez.';
+            }
+        }
+
+        function updateStockPrices() {
+            for (let stockName in stocks) {
+                stocks[stockName].lastPrice = stocks[stockName].price;
+                let change = (Math.random() - 0.5) * 2 * stocks[stockName].volatility;
+                stocks[stockName].price *= (1 + change);
+                stocks[stockName].price = Math.max(1, stocks[stockName].price);
+                stocks[stockName].history.push(stocks[stockName].price);
+                if (stocks[stockName].history.length > 50) {
+                    stocks[stockName].history.shift();
+                }
+            }
+            updateDisplay();
+        }
+
+        function sellTo(buyerIndex) {
+            const buyer = buyers[buyerIndex];
+            if (harvested[buyer.wants] >= buyer.amount) {
+                harvested[buyer.wants] -= buyer.amount;
+                money += buyer.price;
+                gainXP(buyer.xp);
+                document.getElementById('status').textContent = `Vendu ${buyer.amount}g de ${buyer.wants} à ${buyer.name} pour $${buyer.price}!`;
+                buyers.splice(buyerIndex, 1);
+                buyers.push(generateBuyer());
+                updateDisplay();
+            } else {
+                document.getElementById('status').textContent = `Pas assez de ${buyer.wants} récolté pour satisfaire ${buyer.name}.`;
+            }
+        }
+
+        function selectSeed(type) {
+            selectedSeed = type;
+            document.querySelectorAll('.seed-type').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector(`.seed-type:nth-child(${Object.keys(plantTypes).indexOf(type) + 1})`).classList.add('selected');
+        }
+
+        function plant(index) {
+            if (money >= plantTypes[selectedSeed].price && !plots[index]) {
+                plots[index] = selectedSeed;
+                money -= plantTypes[selectedSeed].price;
+                growth[index] = 0;
+                timers[index] = plantTypes[selectedSeed].growthTime;
+                wateringCount[index] = 0;
+                updateDisplay();
+                document.getElementById('status').textContent = `Graine de ${selectedSeed} plantée pour $${plantTypes[selectedSeed].price} !`;
+                
+                startGrowthTimer(index);
+            } else if (money < plantTypes[selectedSeed].price) {
+                document.getElementById('status').textContent = 'Pas assez d\'argent !';
+            } else {
+                document.getElementById('status').textContent = 'Cette parcelle est déjà occupée !';
+            }
+        }
+
+        function startGrowthTimer(index) {
+            if (growthIntervals[index]) {
+                clearInterval(growthIntervals[index]);
+            }
+            growthIntervals[index] = setInterval(() => {
+                if (growth[index] < 100) {
+                    growth[index]++;
+                    timers[index]--;
+                    if (timers[index] <= 0) {
+                        clearInterval(growthIntervals[index]);
+                        growthIntervals[index] = null;
+                        timers[index] = null;
+                    }
+                    updateDisplay();
+                }
+            }, 1000);
+        }
+
+        function waterAll() {
+            if (water >= 10) {
+                for (let i = 0; i < plots.length; i++) {
+                    if (plots[i] && growth[i] < 100) {
+                        growth[i] += 10;
+                        if (growth[i] > 100) growth[i] = 100;
+                        wateringCount[i]++;
+                        startGrowthTimer(i);
+                    }
+                }
+                water -= 10;
+                gainXP(5);
+                updateDisplay();
+                document.getElementById('status').textContent = 'Toutes les plantes ont été arrosées !';
+            } else {
+                document.getElementById('status').textContent = 'Pas assez d\'eau !';
+            }
+        }
+
+        function harvest() {
+            let harvestedAmount = 0;
+            for (let i = 0; i < plots.length; i++) {
+                if (plots[i] && growth[i] === 100) {
+                    let [min, max] = plantTypes[plots[i]].yield;
+                    let amount = Math.floor(Math.random() * (max - min + 1)) + min;
+                    amount += wateringCount[i] * 2;
+                    harvested[plots[i]] += amount;
+                    harvestedAmount += amount;
+                    plots[i] = null;
+                    growth[i] = 0;
+                    timers[i] = null;
+                    wateringCount[i] = 0;
+                    if (growthIntervals[i]) {
+                        clearInterval(growthIntervals[i]);
+                        growthIntervals[i] = null;
+                    }
+                    gainXP(20);
+                }
+            }
+            updateDisplay();
+            document.getElementById('status').textContent = `Récolte effectuée ! Vous avez récolté ${harvestedAmount}g au total.`;
+        }
+
+        function gainXP(amount) {
+            xp += amount;
+            while (xp >= xpNeeded) {
+                xp -= xpNeeded;
+                level++;
+                xpNeeded = Math.floor(xpNeeded * 1.5);
+            }
+            updateDisplay();
+        }
+
+        function buyWater() {
+            if (money >= 10) {
+                water += 50;
+                money -= 10;
+                updateDisplay();
+                document.getElementById('status').textContent = 'Vous avez acheté 50L d\'eau pour $10.';
+            } else {
+                document.getElementById('status').textContent = 'Pas assez d\'argent pour acheter de l\'eau !';
+            }
+        }
+
+        function buyShopItem(index) {
+            const item = shopItems[index];
+            if (money >= item.price) {
+                money -= item.price;
+                item.onPurchase();
+                activeItems.push({...item, expirationTime: Date.now() + 5 * 60 * 1000});
+                shopItems.splice(index, 1);
+                updateDisplay();
+                document.getElementById('status').textContent = `Vous avezacheté ${item.name} pour $${item.price}. Effet actif pendant 5 minutes.`;
+            } else {
+                document.getElementById('status').textContent = 'Pas assez d\'argent pour acheter cet objet !';
+            }
+        }
+
+        function checkActiveItems() {
+            const now = Date.now();
+            activeItems = activeItems.filter(item => {
+                if (now >= item.expirationTime) {
+                    console.log(`L'effet de ${item.name} a expiré.`);
+                    return false;
+                }
+                return true;
+            });
+            updateDisplay();
+        }
+
+        function updateShopRefreshTimer() {
+            shopRefreshTimer--;
+            if (shopRefreshTimer <= 0) {
+                refillShop();
+            }
+            updateShopTimer();
+        }
+
+        function saveGame() {
+            const gameState = {
+                plots,
+                growth,
+                water,
+                harvested,
+                totalHarvested,
+                selectedSeed,
+                timers,
+                level,
+                xp,
+                xpNeeded,
+                money,
+                selectedStock,
+                ownedStocks,
+                wateringCount,
+                shopRefreshTimer,
+                buyers,
+                stocks,
+                shopItems,
+                activeItems
+            };
+            localStorage.setItem('cannaCraftSave', JSON.stringify(gameState));
+            document.getElementById('status').textContent = 'Partie sauvegardée avec succès !';
+        }
+
+        function loadGame() {
+            const savedGame = localStorage.getItem('cannaCraftSave');
+            if (savedGame) {
+                const gameState = JSON.parse(savedGame);
+                plots = gameState.plots;
+                growth = gameState.growth;
+                water = gameState.water;
+                harvested = gameState.harvested;
+                totalHarvested = gameState.totalHarvested;
+                selectedSeed = gameState.selectedSeed;
+                timers = gameState.timers;
+                level = gameState.level;
+                xp = gameState.xp;
+                xpNeeded = gameState.xpNeeded;
+                money = gameState.money;
+                selectedStock = gameState.selectedStock;
+                ownedStocks = gameState.ownedStocks;
+                wateringCount = gameState.wateringCount;
+                shopRefreshTimer = gameState.shopRefreshTimer;
+                buyers = gameState.buyers;
+                stocks = gameState.stocks;
+                shopItems = gameState.shopItems;
+                activeItems = gameState.activeItems;
+
+                // Restart growth timers
+                for (let i = 0; i < plots.length; i++) {
+                    if (plots[i] && timers[i] !== null) {
+                        startGrowthTimer(i);
+                    }
+                }
+
+                updateDisplay();
+                document.getElementById('status').textContent = 'Partie chargée avec succès !';
+            } else {
+                document.getElementById('status').textContent = 'Aucune sauvegarde trouvée !';
+            }
+        }
+
+        setInterval(updateDisplay, 1000);
+        setInterval(updateStockPrices, 5000);
+        setInterval(checkActiveItems, 1000);
+        setInterval(updateShopRefreshTimer, 1000);
+        selectSeed('sativa');
+        updateDisplay();
+    </script>
+
+    <footer style="text-align: center; margin-top: 20px; color: #666;">
+        <p>CannaCraft Deluxe est un jeu de simulation éducatif. Veuillez respecter les lois locales concernant la culture et le commerce du cannabis.</p>
+        <nav>
+            <a href="https://cannacraft.io/about">À propos</a> |
+            <a href="https://cannacraft.io/legal">Mentions légales</a> |
+            <a href="https://cannacraft.io/contact">Contact</a>
+        </nav>
+    </footer>
+</body></html>
