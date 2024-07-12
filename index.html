@@ -25,7 +25,7 @@
         }
         .plot, .stock {
             width: 100px;
-            height: 140px;
+            height: 160px;
             background-color: #e8f5e9;
             border: 2px solid #4CAF50;
             border-radius: 5px;
@@ -58,7 +58,7 @@
             font-size: 16px;
             margin-top: 5px;
         }
-        .stock .change {
+        .stock .change, .stock .volume {
             font-size: 12px;
             color: #666;
         }
@@ -199,6 +199,16 @@
             justify-content: space-between;
             margin-top: 20px;
         }
+        #volume-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        #volume-input {
+            width: 60%;
+            padding: 5px;
+            font-size: 16px;
+        }
     </style></head><body>
     <h1>CannaCraft Deluxe</h1>
     <div id="game-container">
@@ -263,6 +273,10 @@
         </div>
         <h2>Marché boursier simplifié</h2>
         <div id="stock-market"></div>
+        <div id="volume-controls">
+            <input type="number" id="volume-input" min="1" value="1" placeholder="Quantité">
+            <button onclick="setVolume()">Définir la quantité</button>
+        </div>
         <div id="stock-controls">
             <button onclick="buyStock()">Acheter</button>
             <button onclick="sellStock()">Vendre</button>
@@ -300,6 +314,7 @@
         let ownedStocks = {};
         let wateringCount = Array(10).fill(0);
         let shopRefreshTimer = 15 * 60; // 15 minutes in seconds
+        let transactionVolume = 1;
 
         const plantTypes = {
             'sativa': { growthTime: 120, yield: [25, 35], price: 50, sellPrice: 10 },
@@ -346,8 +361,7 @@
                     plantTypes[type].yield[0] = Math.floor(plantTypes[type].yield[0] * 1.1);
                     plantTypes[type].yield[1] = Math.floor(plantTypes[type].yield[1] * 1.1);
                 }
-            }},
-            { name: "Système d'arrosage automatique", price: 1000, effect: "Arrose automatiquement toutes les plantes toutes les 30 secondes", onPurchase: () => {
+            }},{ name: "Système d'arrosage automatique", price: 1000, effect: "Arrose automatiquement toutes les plantes toutes les 30 secondes", onPurchase: () => {
                 setInterval(waterAll, 30000);
             }},
             { name: "Serre high-tech", price: 2000, effect: "Réduit le temps de croissance de 20%", onPurchase: () => {
@@ -468,7 +482,7 @@
                     <strong>${stockName}</strong>
                     <div class="price">$${stocks[stockName].price.toFixed(2)}</div>
                     <div class="trend ${changeClass}">${trend} ${Math.abs(changePercent)}%</div>
-                    <div class="change">Vol: ${stocks[stockName].volume}</div>
+                    <div class="volume">Vol: ${stocks[stockName].volume}</div>
                     <div class="recommendation ${recommendation.toLowerCase()}">${recommendation}</div>
                 `;
                 stockMarket.appendChild(stockDiv);
@@ -542,30 +556,37 @@
             updateStocks();
         }
 
+        function setVolume() {
+            const volumeInput = document.getElementById('volume-input');
+            transactionVolume = parseInt(volumeInput.value) || 1;
+            document.getElementById('status').textContent = `Volume de transaction défini à ${transactionVolume}`;
+        }
+
         function buyStock() {
-            if (selectedStock && money >= stocks[selectedStock].price) {
-                money -= stocks[selectedStock].price;
-                ownedStocks[selectedStock] = (ownedStocks[selectedStock] || 0) + 1;
-                stocks[selectedStock].volume += 1;
-                gainXP(5);
+            if (selectedStock && money >= stocks[selectedStock].price * transactionVolume) {
+                const totalCost = stocks[selectedStock].price * transactionVolume;
+                money -= totalCost;
+                ownedStocks[selectedStock] = (ownedStocks[selectedStock] || 0) + transactionVolume;
+                stocks[selectedStock].volume += transactionVolume;
+                gainXP(5 * transactionVolume);
                 updateDisplay();
-                document.getElementById('status').textContent = `Achat d'une action ${selectedStock} pour $${stocks[selectedStock].price.toFixed(2)}`;
+                document.getElementById('status').textContent = `Achat de ${transactionVolume} action(s) ${selectedStock} pour $${totalCost.toFixed(2)}`;
             } else {
                 document.getElementById('status').textContent = 'Sélectionnez une action et assurez-vous d\'avoir assez d\'argent.';
             }
         }
 
         function sellStock() {
-            if (selectedStock && ownedStocks[selectedStock] > 0) {
-                let sellPrice = stocks[selectedStock].price;
+            if (selectedStock && ownedStocks[selectedStock] >= transactionVolume) {
+                const sellPrice = stocks[selectedStock].price * transactionVolume;
                 money += sellPrice;
-                ownedStocks[selectedStock]--;
-                stocks[selectedStock].volume -= 1;
-                gainXP(5);
+                ownedStocks[selectedStock] -= transactionVolume;
+                stocks[selectedStock].volume -= transactionVolume;
+                gainXP(5 * transactionVolume);
                 updateDisplay();
-                document.getElementById('status').textContent = `Vente d'une action ${selectedStock} pour $${sellPrice.toFixed(2)}`;
+                document.getElementById('status').textContent = `Vente de ${transactionVolume} action(s) ${selectedStock} pour $${sellPrice.toFixed(2)}`;
             } else {
-                document.getElementById('status').textContent = 'Sélectionnez une action que vous possédez.';
+                document.getElementById('status').textContent = 'Sélectionnez une action que vous possédez en quantité suffisante.';
             }
         }
 
@@ -685,8 +706,7 @@
             document.getElementById('status').textContent = `Récolte effectuée ! Vous avez récolté ${harvestedAmount}g au total.`;
         }
 
-        function gainXP(amount) {
-            xp += amount;
+        function gainXP(amount) {xp += amount;
             while (xp >= xpNeeded) {
                 xp -= xpNeeded;
                 level++;
@@ -714,7 +734,7 @@
                 activeItems.push({...item, expirationTime: Date.now() + 5 * 60 * 1000});
                 shopItems.splice(index, 1);
                 updateDisplay();
-                document.getElementById('status').textContent = `Vous avezacheté ${item.name} pour $${item.price}. Effet actif pendant 5 minutes.`;
+                document.getElementById('status').textContent = `Vous avez acheté ${item.name} pour $${item.price}. Effet actif pendant 5 minutes.`;
             } else {
                 document.getElementById('status').textContent = 'Pas assez d\'argent pour acheter cet objet !';
             }
@@ -760,7 +780,8 @@
                 buyers,
                 stocks,
                 shopItems,
-                activeItems
+                activeItems,
+                transactionVolume
             };
             localStorage.setItem('cannaCraftSave', JSON.stringify(gameState));
             document.getElementById('status').textContent = 'Partie sauvegardée avec succès !';
@@ -789,6 +810,7 @@
                 stocks = gameState.stocks;
                 shopItems = gameState.shopItems;
                 activeItems = gameState.activeItems;
+                transactionVolume = gameState.transactionVolume || 1;
 
                 // Restart growth timers
                 for (let i = 0; i < plots.length; i++) {
